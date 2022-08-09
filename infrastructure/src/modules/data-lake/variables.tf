@@ -24,22 +24,22 @@ variable "tags" {
   type        = map(any)
 }
 
-variable "storage_tier" {
+variable "storage_account_tier" {
   description = "The tier for the storage account"
   type        = string
 }
 
-variable "storage_replication_type" {
+variable "storage_account_replication_type" {
   description = "The replication type for the storage account"
   type        = string
 }
 
-variable "data_lake_containers" {
+variable "datalake_containers" {
   type = map(object({
-    ace_scope = string
-    ace_type  = string
-    ace_id    = string
-    ace_perm  = string
+    scope = string
+    type  = string
+    id    = string
+    perm  = string
   }))
   description = "A list of Data Lake Gen 2 file system container names and ACL permissions."
 }
@@ -56,7 +56,7 @@ variable "storage_account_network_acls" {
   default     = null
 }
 
-variable "data_lake_container_paths" {
+variable "datalake_container_paths" {
   type = list(object({
     container_name = string
     path_name      = string

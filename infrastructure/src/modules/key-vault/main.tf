@@ -14,7 +14,7 @@ data "http" "public_ip" {
 
 locals {
 
-  keyvault_name_base = substr("${var.project_name}${var.domain_name}-${var.environment_name}-${var.location_short_name}", 0, 19)
+  keyvault_name_base = substr("${var.project_name}-${var.environment_name}-${var.location_short_name}", 0, 19)
   keyvault_name      = lower("${local.keyvault_name_base}-kv-${var.instance_id}")
   ifconfig_co_json   = jsondecode(data.http.public_ip.body)
 }

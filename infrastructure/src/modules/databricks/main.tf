@@ -5,7 +5,7 @@ data "azurerm_resource_group" "rg" {
 }
 
 locals {
-  databricks_workspace_name = lower("${var.project_name}-${var.domain}-${var.environment_name}-${var.location_short_name}-dbw")
+  databricks_workspace_name = lower("${var.project_name}-${var.environment_name}-${var.location_short_name}-dbw")
 }
 
 resource "azurerm_databricks_workspace" "databricks_workspace" {

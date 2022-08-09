@@ -22,8 +22,8 @@ resource "azurerm_storage_account" "storage" {
   })
 
   account_kind              = "StorageV2"
-  account_tier              = var.storage_tier
-  account_replication_type  = var.storage_replication_type
+  account_tier              = var.storage_account_tier
+  account_replication_type  = var.storage_account_replication_type
   access_tier               = "Hot"
   enable_https_traffic_only = true
   min_tls_version           = "TLS1_2"

@@ -9,11 +9,6 @@ variable "project_name" {
   type        = string
 }
 
-variable "domain" {
-  description = "The domain name. Ex:Product, Claim"
-  type        = string
-}
-
 variable "resource_group_name" {
   description = "The name of the resource group"
   type        = string

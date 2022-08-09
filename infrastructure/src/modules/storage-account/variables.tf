@@ -24,12 +24,12 @@ variable "tags" {
   type        = map(any)
 }
 
-variable "storage_tier" {
+variable "storage_account_tier" {
   description = "The tier for the storage account"
   type        = string
 }
 
-variable "storage_replication_type" {
+variable "storage_account_replication_type" {
   description = "The replication type for the storage account"
   type        = string
 }

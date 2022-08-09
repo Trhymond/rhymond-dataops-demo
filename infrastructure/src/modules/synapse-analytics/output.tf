@@ -1,21 +1,11 @@
 output "id" {
-  description = "The id of the newly created storage account"
-  value       = azurerm_storage_account.storage.id
+  description = "The id of the newly created synapse workspace"
+  value       = azurerm_synapse_workspace.synapse_workspace.id
 }
 
 output "name" {
-  description = "The name of the newly created storage account"
-  value       = azurerm_storage_account.storage.name
-}
-
-output "primary_key" {
-  description = "The primary key of the newly created storage account"
-  value       = azurerm_storage_account.storage.primary_access_key
-}
-
-output "secondary_key" {
-  description = "The secondary key of the newly created storage account"
-  value       = azurerm_storage_account.storage.secondary_access_key
+  description = "The name of the newly created synapse workspace"
+  value       = azurerm_synapse_workspace.synapse_workspace.name
 }
 
 

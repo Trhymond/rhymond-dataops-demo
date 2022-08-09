@@ -24,31 +24,15 @@ variable "tags" {
   type        = map(any)
 }
 
-variable "storage_tier" {
-  description = "The tier for the storage account"
+variable "datalake_filesystem_id" {
+  description = "The Data lake filesystem id"
   type        = string
 }
-
-variable "storage_replication_type" {
-  description = "The replication type for the storage account"
-  type        = string
-}
-
-variable "storage_fileshares" {
-  description = "The filesshares to create on the storage account"
-  type = list(object({
-    name  = string
-    quota = number
-  }))
-  default = []
-}
-
 
 variable "keyvault_id" {
-  description = "The  keyvault id"
+  description = "The Keyvault id"
   type        = string
 }
-
 
 variable "secret_expiration_days" {
   type        = number
@@ -56,3 +40,21 @@ variable "secret_expiration_days" {
   default     = 90
 }
 
+variable "sqlpool_admin_user_name" {
+  type        = string
+  description = "The sql pool admin user name"
+}
+
+variable "sqlpool_sku_name" {
+  type        = string
+  description = "The sql pool sku name"
+}
+
+variable "firewall_rules" {
+  type = map(object({
+    name     = string
+    start_ip = string
+    end_ip   = string
+  }))
+  description = "Allows you to manage an Synapse Firewall Rule."
+}

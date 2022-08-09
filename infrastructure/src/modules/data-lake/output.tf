@@ -8,14 +8,9 @@ output "name" {
   value       = azurerm_storage_account.storage.name
 }
 
-output "primary_key" {
-  description = "The primary key of the newly created storage account"
-  value       = azurerm_storage_account.storage.primary_access_key
-}
-
-output "secondary_key" {
-  description = "The secondary key of the newly created storage account"
-  value       = azurerm_storage_account.storage.secondary_access_key
+output "filesystems" {
+  description = "The id of the Data Lake File System"
+  value       = azurerm_storage_data_lake_gen2_filesystem.data_lake_files
 }
 
 
