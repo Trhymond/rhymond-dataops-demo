@@ -7,14 +7,11 @@ data "azurerm_resource_group" "rg" {
 locals {
   storage_account_name = replace(lower("${var.project_name}-${var.environment_name}-${var.location_short_name}-sto"), "-", "")
 
-  storage_account_network_acls = [
-    var.storage_account_network_acls == null ? {
-      bypass                     = ["AzureServices"],
-      default_action             = "Allow",
-      ip_rules                   = [],
-      virtual_network_subnet_ids = []
-    } : var.storage_account_network_acls
-  ]
+  storage_account_network_acls = var.storage_account_network_acls == null || length(var.storage_account_network_acls) == 0 ? merge(var.storage_account_network_acls, {
+    bypass         = ["AzureServices"],
+    default_action = "Allow",
+  }) : var.storage_account_network_acls
+
 
   # storage_account_role_assignments_hash_map = {
   #   for assignment in var.storage_account_role_assignments :
@@ -53,7 +50,7 @@ resource "azurerm_storage_account" "storage" {
       bypass                     = acl.value.bypass
       default_action             = acl.value.default_action
       ip_rules                   = acl.value.ip_rules
-      virtual_network_subnet_ids = acl.value.virtual_network_subnet_ids
+      virtual_network_subnet_ids = acl.value.virtual_network_subnet_ids == null ? null : acl.value.virtual_network_subnet_ids
     }
   }
 

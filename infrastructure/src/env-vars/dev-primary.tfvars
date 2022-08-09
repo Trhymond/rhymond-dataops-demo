@@ -154,9 +154,9 @@ log_analytics_retention_in_days = "30"
 
 
 # Key Vault
-keyvault_instance_id                 = 5
-keyvault_sku_name                    = "standard"
-keyvault_ip_rules                    = []
+keyvault_instance_id = 5
+keyvault_sku_name    = "standard"
+keyvault_ip_rules    = []
 keyvault_access_policies = [
   { name = "Microsoft Azure CLI", object_id = "2d5bf8d7-3116-4d46-a951-65a94082e92b", application_id = "04b07795-8ddb-461a-bbee-02f9e1bf7b46" },
   { name = "azure_devops_nonprod", object_id = "22a5ec62-ad8b-4f3a-b2fe-f566170f1a8d", application_id = "df555efd-6de0-4370-a12a-d3401abfcbce" }
@@ -172,40 +172,40 @@ storage_account_replication_type = "LRS"
 data_factory_public_network_enabled = true
 data_factory_action_group_shortname = ""
 data_factory_alert_email_receivers = [{
-  name = "Tomy Rhymond".
-  email_address  = "tomy.rhymond@slalom.com"
+  name          = "Tomy Rhymond"
+  email_address = "tomy.rhymond@slalom.com"
 }]
 
 # Databricks
-databricks_sku                      = "premium"
-databricks_no_public_ip             = true
-databricks_public_subnet_name       = "public-databricks-snet"
-databricks_private_subnet_name      = "private-databricks-snet"
-service_principal_client_id = "df555efd-6de0-4370-a12a-d3401abfcbce"
+databricks_sku                 = "premium"
+databricks_no_public_ip        = true
+databricks_public_subnet_name  = "public-databricks-snet"
+databricks_private_subnet_name = "private-databricks-snet"
+service_principal_client_id    = "df555efd-6de0-4370-a12a-d3401abfcbce"
 
 # ADLS
-datalake_storage_account_tier = ""
-datalake_storage_account_replication_type = ""
-datalake_containers = [
+datalake_storage_account_tier             = "Standard"
+datalake_storage_account_replication_type = "LRS"
+datalake_containers = {
   "bronze" = { scope = "access", type = "user", id = "99331b05-b78e-4c92-9e8a-5c7d42a36c1a", perm = "rwx" },
   "silver" = { scope = "access", type = "user", id = "99331b05-b78e-4c92-9e8a-5c7d42a36c1a", perm = "rwx" },
   "gold"   = { scope = "access", type = "user", id = "99331b05-b78e-4c92-9e8a-5c7d42a36c1a", perm = "rwx" },
-]
+}
 datalake_container_paths = [
-    { container_name = "bronze", path_name = "con01" },
-    { container_name = "silver", path_name = "con01" },
-    { container_name = "silver", path_name = "con02" },
-    { container_name = "gold", path_name = "con01" }
+  { container_name = "bronze", path_name = "con01" },
+  { container_name = "silver", path_name = "con01" },
+  { container_name = "silver", path_name = "con02" },
+  { container_name = "gold", path_name = "con01" }
 ]
 datalake_storage_account_network_acls = {
   bypass                     = ["AzureServices"]
   default_action             = "Deny"
   ip_rules                   = ["any"]
-  virtual_network_subnet_ids = []  
+  virtual_network_subnet_ids = []
 }
 datalake_storage_account_role_assignments = []
 
 #Synapse
 sqlpool_admin_user_name = "synapse_sql_admin"
-sqlpool_sku_name= "DW100c"
-synapse_firewall_rules =  {}
+sqlpool_sku_name        = "DW100c"
+synapse_firewall_rules  = {}
