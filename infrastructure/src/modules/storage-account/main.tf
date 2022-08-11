@@ -30,7 +30,7 @@ resource "azurerm_storage_account" "storage" {
   is_hns_enabled            = false
 
   network_rules {
-    default_action = "Deny"
+    default_action = "deny"
   }
 
   identity {

@@ -15,7 +15,7 @@ locals {
   storage_account_network_acls = [
     local.is_any_acl_present || var.storage_account_network_acls == null ? {
       bypass                     = ["AzureServices"],
-      default_action             = "Allow",
+      default_action             = "deny",
       ip_rules                   = [],
       virtual_network_subnet_ids = []
     } : var.storage_account_network_acls
@@ -65,6 +65,7 @@ resource "azurerm_storage_account" "storage" {
       virtual_network_subnet_ids = acl.value.virtual_network_subnet_ids
     }
   }
+
 
   identity {
     type = "SystemAssigned"
