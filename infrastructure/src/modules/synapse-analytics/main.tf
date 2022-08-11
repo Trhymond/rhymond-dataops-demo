@@ -38,6 +38,18 @@ resource "azurerm_synapse_workspace" "synapse_workspace" {
   identity {
     type = "SystemAssigned"
   }
+
+  data_exfiltration_protection_enabled = true
+  public_network_access_enabled        = false
+  managed_virtual_network_enabled      = true
+  sql_identity_control_enabled         = true
+  managed_resource_group_name          = "${synapse_workspace_name}-managed-rg"
+
+  # sql_aad_admin {
+  #   login     = ""
+  #   object_id = ""
+  #   tenant_id = ""
+  # }
 }
 
 resource "azurerm_synapse_sql_pool" "synapse_pool" {
@@ -61,20 +73,21 @@ resource "azurerm_key_vault_secret" "admin_pswd_secret" {
   value           = random_password.password[0].result
   key_vault_id    = var.keyvault_id
   expiration_date = local.secret_expiration_date
+  content_type    = "text/plain"
 
   depends_on = [
     random_password.password
   ]
 }
 
-resource "azurerm_synapse_firewall_rule" "synapse_firewall_rule" {
-  for_each             = var.firewall_rules
-  name                 = each.value.name
-  synapse_workspace_id = azurerm_synapse_workspace.synapse_workspace.id
-  start_ip_address     = each.value.start_ip
-  end_ip_address       = each.value.end_ip
+# resource "azurerm_synapse_firewall_rule" "synapse_firewall_rule" {
+#   for_each             = var.firewall_rules
+#   name                 = each.value.name
+#   synapse_workspace_id = azurerm_synapse_workspace.synapse_workspace.id
+#   start_ip_address     = each.value.start_ip
+#   end_ip_address       = each.value.end_ip
 
-  depends_on = [
-    azurerm_synapse_workspace.synapse_workspace
-  ]
-}
+#   depends_on = [
+#     azurerm_synapse_workspace.synapse_workspace
+#   ]
+# }

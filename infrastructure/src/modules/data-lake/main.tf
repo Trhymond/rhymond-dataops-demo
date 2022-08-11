@@ -7,10 +7,10 @@ data "azurerm_resource_group" "rg" {
 locals {
   storage_account_name = replace(lower("${var.project_name}-${var.environment_name}-${var.location_short_name}-sto"), "-", "")
 
-  storage_account_network_acls = var.storage_account_network_acls == null || length(var.storage_account_network_acls) == 0 ? merge(var.storage_account_network_acls, {
-    bypass         = ["AzureServices"],
-    default_action = "Allow",
-  }) : var.storage_account_network_acls
+  # storage_account_network_acls = var.storage_account_network_acls == null || length(var.storage_account_network_acls) == 0 ? merge(var.storage_account_network_acls, {
+  #   bypass         = ["AzureServices"],
+  #   default_action = "Allow",
+  # }) : var.storage_account_network_acls
 
 
   # storage_account_role_assignments_hash_map = {
@@ -42,9 +42,13 @@ resource "azurerm_storage_account" "storage" {
   min_tls_version           = "TLS1_2"
   is_hns_enabled            = true
 
+  network_rules {
+    bypass         = ["AzureServices"]
+    default_action = "Allow"
+  }
 
   dynamic "network_rules" {
-    for_each = local.storage_account_network_acls
+    for_each = var.storage_account_network_acls
     iterator = acl
     content {
       bypass                     = acl.value.bypass
@@ -52,6 +56,10 @@ resource "azurerm_storage_account" "storage" {
       ip_rules                   = acl.value.ip_rules
       virtual_network_subnet_ids = acl.value.virtual_network_subnet_ids
     }
+  }
+
+  network_rules {
+    default_action = "Deny"
   }
 
   identity {
@@ -97,5 +105,25 @@ resource "azurerm_role_assignment" "role_asgmt" {
 
   depends_on = [
     azurerm_storage_account.storage
+  ]
+}
+
+resource "azurerm_key_vault_key" "storage_cmk_key" {
+  #checkov:skip=CKV_AZURE_112: "Ensure that key vault key is backed by HSM"
+  name            = "${local.storage_account_name}-key"
+  key_vault_id    = var.keyvault_id
+  key_type        = "RSA"
+  key_size        = 2048
+  key_opts        = ["decrypt", "encrypt", "sign", "unwrapKey", "verify", "wrapKey"]
+  expiration_date = local.secret_expiration_date
+}
+
+resource "azurerm_storage_account_customer_managed_key" "storage_cmk" {
+  storage_account_id = azurerm_storage_account.storage.id
+  key_vault_id       = var.keyvault_id
+  key_name           = azurerm_key_vault_key.storage_cmk_key.name
+
+  depends_on = [
+    azurerm_key_vault_key.storage_cmk_key
   ]
 }

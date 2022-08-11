@@ -230,12 +230,12 @@ variable "sqlpool_sku_name" {
   description = "The sql pool sku name"
 }
 
-variable "synapse_firewall_rules" {
-  type = map(object({
-    name     = string
-    start_ip = string
-    end_ip   = string
-  }))
-  description = "Allows you to manage an Synapse Firewall Rule."
-}
+# variable "synapse_firewall_rules" {
+#   type = map(object({
+#     name     = string
+#     start_ip = string
+#     end_ip   = string
+#   }))
+#   description = "Allows you to manage an Synapse Firewall Rule."
+# }
 

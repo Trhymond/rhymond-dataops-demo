@@ -13,6 +13,7 @@ locals {
 }
 
 resource "azurerm_key_vault_key" "adf_cmk_key" {
+  #checkov:skip=CKV_AZURE_112: "Ensure that key vault key is backed by HSM"
   name            = "${local.data_factory_name}-key"
   key_vault_id    = var.keyvault_id
   key_type        = "RSA"
@@ -22,6 +23,7 @@ resource "azurerm_key_vault_key" "adf_cmk_key" {
 }
 
 resource "azurerm_data_factory" "data_factory" {
+  #checkov:skip=CKV_AZURE_103: "Ensure that Azure Data Factory uses Git repository for source control"
   name                = local.data_factory_name
   resource_group_name = data.azurerm_resource_group.rg.name
   location            = data.azurerm_resource_group.rg.location
@@ -38,6 +40,17 @@ resource "azurerm_data_factory" "data_factory" {
   customer_managed_key_id = azurerm_key_vault_key.adf_cmk_key.id
 
 }
+
+resource "azurerm_data_factory_linked_service_key_vault" "kv_link" {
+  name            = "${local.data_factory_name}-kv"
+  data_factory_id = azurerm_data_factory.data_factory.id
+  key_vault_id    = var.keyvault_id
+
+  depends_on = [
+    azurerm_data_factory.data_factory
+  ]
+}
+
 
 # add diagnostic settings
 resource "azurerm_monitor_diagnostic_setting" "adf_diag_setting" {

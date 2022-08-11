@@ -75,3 +75,8 @@ variable "storage_account_role_assignments" {
   description = "A list of objects that define role assignments for the storage account."
   default     = []
 }
+
+variable "keyvault_id" {
+  description = "The KeyVaullt id"
+  type        = string
+}

@@ -208,4 +208,4 @@ datalake_storage_account_role_assignments = []
 #Synapse
 sqlpool_admin_user_name = "synapse_sql_admin"
 sqlpool_sku_name        = "DW100c"
-synapse_firewall_rules  = {}
+# synapse_firewall_rules  = {}

@@ -25,6 +25,8 @@ resource "random_password" "password" {
 }
 
 resource "azurerm_mssql_server" "sql_server" {
+  #checkov:skip=CKV_AZURE_24: "Ensure that 'Auditing' Retention is 'greater than 90 days' for SQL servers"
+  #checkov:skip=CKV_AZURE_23: "Ensure that 'Auditing' is set to 'On' for SQL servers"
   name                = local.sql_server_name
   resource_group_name = data.azurerm_resource_group.rg.name
   location            = data.azurerm_resource_group.rg.location
@@ -32,11 +34,11 @@ resource "azurerm_mssql_server" "sql_server" {
     "criticality" = "High"
   })
 
-  version                      = "12.0"
-  administrator_login          = var.sql_admin_username
-  administrator_login_password = random_password.password[0].result
-
-  public_network_access_enabled = true
+  version                       = "12.0"
+  administrator_login           = var.sql_admin_username
+  administrator_login_password  = random_password.password[0].result
+  minimum_tls_version           = "1.2"
+  public_network_access_enabled = false
 
   dynamic "azuread_administrator" {
     for_each = var.sql_ad_admin != null ? [1] : []
@@ -69,8 +71,13 @@ resource "azurerm_mssql_database" "sql_database" {
   transparent_data_encryption_enabled = true
   zone_redundant                      = each.value.zone_redundant
 
-  /*   extended_auditing_policy {
-  } */
+  # extended_auditing_policy {
+  #   storage_endpoint                        = azurerm_storage_account.example.primary_blob_endpoint
+  #   storage_account_access_key              = azurerm_storage_account.example.primary_access_key
+  #   storage_account_access_key_is_secondary = true
+  #   retention_in_days                       = 120
+
+  # }
 
   depends_on = [
     azurerm_mssql_server.sql_server
@@ -147,6 +154,7 @@ resource "azurerm_key_vault_secret" "admin_user_secret" {
   value           = var.sql_admin_username
   key_vault_id    = var.key_vault_id
   expiration_date = local.secret_expiration_date
+  content_type    = "text/plain"
 }
 
 resource "azurerm_key_vault_secret" "admin_pswd_secret" {
@@ -154,6 +162,11 @@ resource "azurerm_key_vault_secret" "admin_pswd_secret" {
   value           = random_password.password[0].result
   key_vault_id    = var.key_vault_id
   expiration_date = local.secret_expiration_date
+  content_type    = "text/plain"
+
+  depends_on = [
+    random_password.password
+  ]
 }
 
 resource "azurerm_key_vault_secret" "db_rw_user_name_secret" {
@@ -162,6 +175,7 @@ resource "azurerm_key_vault_secret" "db_rw_user_name_secret" {
   value           = "${each.value.sql_database_name}-rw-user"
   key_vault_id    = var.key_vault_id
   expiration_date = local.secret_expiration_date
+  content_type    = "text/plain"
 }
 
 resource "azurerm_key_vault_secret" "db_ro_user_name_secret" {
@@ -170,6 +184,7 @@ resource "azurerm_key_vault_secret" "db_ro_user_name_secret" {
   value           = "${each.value.sql_database_name}-ro-user"
   key_vault_id    = var.key_vault_id
   expiration_date = local.secret_expiration_date
+  content_type    = "text/plain"
 }
 
 resource "azurerm_key_vault_secret" "db_rw_password_secret" {
@@ -178,6 +193,11 @@ resource "azurerm_key_vault_secret" "db_rw_password_secret" {
   value           = random_password.password[1].result
   key_vault_id    = var.key_vault_id
   expiration_date = local.secret_expiration_date
+  content_type    = "text/plain"
+
+  depends_on = [
+    random_password.password
+  ]
 }
 
 resource "azurerm_key_vault_secret" "db_ro_password_secret" {
@@ -186,6 +206,11 @@ resource "azurerm_key_vault_secret" "db_ro_password_secret" {
   value           = random_password.password[2].result
   key_vault_id    = var.key_vault_id
   expiration_date = local.secret_expiration_date
+  content_type    = "text/plain"
+
+  depends_on = [
+    random_password.password
+  ]
 }
 
 # resource "null_resource" "remove_diag_settings" {
@@ -224,6 +249,15 @@ resource "azurerm_monitor_diagnostic_setting" "sql_diag_setting" {
     azurerm_mssql_database.sql_database
   ]
 }
+
+# resource "azurerm_mssql_database_extended_auditing_policy" "sql_audit_policy" {
+#   database_id                             = azurerm_mssql_database.example.id
+#   storage_endpoint                        = azurerm_storage_account.example.primary_blob_endpoint
+#   storage_account_access_key              = azurerm_storage_account.example.primary_access_key
+#   storage_account_access_key_is_secondary = false
+#   retention_in_days                       = 6
+# }
+
 
 # create sql logins
 resource "null_resource" "sql_logins" {
