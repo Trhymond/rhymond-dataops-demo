@@ -10,9 +10,9 @@ name: 'Deploy DataOps Infrastructure'
 on:
   push:
     branches: [ master, dev ]
-    paths:
-      - '**/deploy-infra.yml'
-      - '**/infrastructure/src/**/*.tf'    
+    # paths:
+    #   - '**/deploy-infra.yml'
+    #   - '**/infrastructure/src/**/*.tf'    
 
 permissions:
   contents: read
