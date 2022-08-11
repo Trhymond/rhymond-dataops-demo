@@ -1,0 +1,167 @@
+# This workflow installs the latest version of Terraform CLI and configures the Terraform CLI configuration file
+# with an API token for Terraform Cloud (app.terraform.io). On pull request events, this workflow will run
+# `terraform init`, `terraform fmt`, and `terraform plan` (speculative plan via Terraform Cloud). On push events
+# to the "master" branch, `terraform apply` will be executed.
+#
+# Documentation for `hashicorp/setup-terraform` is located here: https://github.com/hashicorp/setup-terraform
+
+name: 'Deploy Converter Infrastructure'
+
+on:
+  push:
+    branches: [ master, dev ]
+    paths:
+      - '.github/workflows/deploy-infra.yml'
+      - 'src/**/*.tf'    
+
+permissions:
+  contents: read
+
+env:
+  ARM_CLIENT_ID: ${{ secrets.AZURE_CLIENT_ID }}
+  ARM_CLIENT_SECRET: ${{ secrets.AZURE_CLIENT_SECRET }}  
+  ARM_TENANT_ID: ${{ secrets.AZURE_TENANT_ID }}
+  ARM_SUBSCRIPTION_ID: ${{ secrets.AZURE_SANDBOX_SUBSCRIPTION_ID }}
+  BACKEND_RESOURCE_GROUP_NAME: 'iac-mgmt-rg'
+  BACKEND_STORAGE_ACCOUNT_NAME: 'iacterraformusesto01'
+  BACKEND_CONTAINER_NAME: 'tfstate'
+  BACKEND_STATE_FILE_NAME: 'dataops-demo.tfstate'
+  VAR_FILE: 'dev.tfvars'
+  PLAN_FILE: 'tf-dataops-demo.tfplan'
+  DEPLOY_ENV: 'dev'
+  SSH_AUTH_SOCK: /tmp/ssh_agent.sock
+ 
+jobs:
+  terraform:
+    name: 'infra-deploy'    
+    runs-on: ubuntu-latest
+    environment: development
+
+    # Use the Bash shell regardless whether the GitHub Actions runner is ubuntu-latest, macos-latest, or windows-latest
+    defaults:
+      run:
+        shell: bash
+
+    steps:
+
+    # Setup Deployment environments
+    - name: Get Git Branch Name
+      run: echo "GIT_BRANCH=$(echo $GITHUB_REF | cut -d'/' -f 3)" >> $GITHUB_ENV
+
+    - name: Set Deployment Environment
+      if: env.GIT_BRANCH == 'master'
+      run: echo "DEPLOY_ENV=prod" >> "$GITHUB_ENV"
+      
+    - name: Set Deployment Environment
+      if: env.GIT_BRANCH == 'dev'
+      run: echo "DEPLOY_ENV=dev" >> "$GITHUB_ENV"
+
+    # Checkout the repository to the GitHub Actions runner
+    - name: Checkout
+      uses: actions/checkout@v3
+      
+    - name: 'Login to SandBox Environment via Azure CLI'
+      if: env.DEPLOY_ENV == 'dev' && steps.run_result.outputs.run_result != 'success'
+      uses: azure/login@v1
+      with:
+        creds: '{"clientId":"${{ secrets.AZURE_CLIENT_ID }}","clientSecret":"${{ secrets.AZURE_CLIENT_SECRET }}","subscriptionId":"${{ secrets.AZURE_SANDBOX_SUBSCRIPTION_ID }}","tenantId":"${{ secrets.AZURE_TENANT_ID }}"}'
+
+    - name: 'Login to Prod Environment via Azure CLI'
+      if: env.DEPLOY_ENV == 'prod' && steps.run_result.outputs.run_result != 'success'
+      uses: azure/login@v1
+      with:
+        creds: '{"clientId":"${{ secrets.AZURE_CLIENT_ID }}","clientSecret":"${{ secrets.AZURE_CLIENT_SECRET }}","subscriptionId":"${{ secrets.AZURE_PROD_SUBSCRIPTION_ID }}","tenantId":"${{ secrets.AZURE_TENANT_ID }}"}'
+
+    # Checks that all Terraform configuration files adhere to a canonical format
+    - name: 'Terraform Format'
+      uses: hashicorp/terraform-github-actions@master
+      with:
+        tf_actions_version: 1.2.5
+        tf_actions_subcommand: 'fmt'
+        tf_actions_working_dir: 'services/infrastructure'
+      
+    #  Initialize a new or existing Terraform working directory by creating initial files, loading any remote state, downloading modules, etc.
+    - name: 'Terraform Init'
+      uses: hashicorp/terraform-github-actions@master
+      with:
+        tf_actions_version: 1.2.5
+        tf_actions_subcommand: 'init'
+        tf_actions_working_dir: 'services/infrastructure'
+        tf_actions_comment: true
+        args: '-backend=true -backend-config="access_key=${{ secrets.BACKEND_STORAGE_ACCOUNT_KEY }}" -backend-config="storage_account_name=${{ env.BACKEND_STORAGE_ACCOUNT_NAME }}" -backend-config="container_name=${{ env.BACKEND_CONTAINER_NAME }}" -backend-config="key=${{ env.DEPLOY_ENV }}.${{ env.BACKEND_STATE_FILE_NAME }}" -backend-config="resource_group_name=${{ env.BACKEND_RESOURCE_GROUP_NAME}}" -backend-config="subscription_id=${{ secrets.BACKEND_SUBSCRIPTION_ID}} " -backend-config="tenant_id=${{ secrets.AZURE_TENANT_ID}}"' 
+      
+    - name: 'Terraform Validate'
+      uses: hashicorp/terraform-github-actions@master
+      with:
+        tf_actions_version: 1.2.5
+        tf_actions_subcommand: 'validate'
+        tf_actions_working_dir: 'services/infrastructure'
+      
+    - name: 'Run Security Scan'
+      id: checkov
+      uses: bridgecrewio/checkov-action@master
+      with:
+          directory: 'services/infrastructure'
+          framework: terraform 
+      
+    # Generates an execution plan for Terraform
+    - name: 'Terraform Plan'
+      uses: hashicorp/terraform-github-actions@master
+      with:
+        tf_actions_version: 1.2.5
+        tf_actions_subcommand: 'plan'
+        tf_actions_working_dir: 'services/infrastructure'
+        args: '-var-file="./env-vars/${{ env.VAR_FILE }}" -input=false -refresh=false -out="${{ env.PLAN_FILE }}"'
+      
+    # - name: Approve Deploy
+    #   uses: trstringer/manual-approval@v1
+    #   timeout-minutes: 60
+    #   with:
+    #         secret: ${{ secrets.TOKEN}}
+    #         approvers: trhymond
+    #         minimum-approvals: 1
+    #         issue-title: 'Deploying infrastructure to ${{ env.DEPLOY_ENV}}'
+
+    # On push to "master", build or change infrastructure according to Terraform configuration files
+    # Note: It is recommended to set up a required "strict" status check in your repository for "Terraform Cloud". See the documentation on "strict" required status checks for more information: https://help.github.com/en/github/administering-a-repository/types-of-required-status-checks
+    - name: Terraform Apply      
+      uses: hashicorp/terraform-github-actions@master
+      with:
+        tf_actions_version: 1.2.5
+        tf_actions_subcommand: 'apply'
+        tf_actions_working_dir: 'services/infrastructure'
+        args: '-auto-approve -input=false "${{ env.PLAN_FILE }}"'
+      
+    - name: Azure Logout
+      run: |
+          az logout
+          az cache purge
+          az account clear            
+
+  # build-and-deploy:
+  #   name: 'app-deploy'    
+  #   runs-on: ubuntu-latest
+  #   environment: development
+  #   needs: terraform
+
+  #   steps:
+  #   - name: Checkout
+  #     uses: actions/checkout@v3
+      
+  #   - name: 'Login via Azure CLI'
+  #     uses: azure/login@v1
+  #     with:
+  #      creds: '{"clientId":"${{ secrets.AZURE_CLIENT_ID }}","clientSecret":"${{ secrets.AZURE_CLIENT_SECRET }}","subscriptionId":"${{ secrets.AZURE_SANDBOX_SUBSCRIPTION_ID }}","tenantId":"${{ secrets.AZURE_TENANT_ID }}"}'
+      
+  #   - name: 'Deploy to Azure Function App'
+  #     uses: Azure/functions-action@v1
+  #     with:
+  #       app-name: ${{ env.AZURE_FUNCTIONAPP_NAME }}
+  #       package: ${{ env.AZURE_FUNCTIONAPP_PACKAGE_PATH }}        
+
+  #   - name: Azure Logout
+  #     run: |
+  #         az logout
+  #         az cache purge
+  #         az account clear      
+   
