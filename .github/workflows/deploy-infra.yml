@@ -78,7 +78,7 @@ jobs:
       with:
         tf_actions_version: 1.2.5
         tf_actions_subcommand: 'fmt'
-        tf_actions_working_dir: 'services/infrastructure'
+        tf_actions_working_dir: 'infrastructure/src'
       
     #  Initialize a new or existing Terraform working directory by creating initial files, loading any remote state, downloading modules, etc.
     - name: 'Terraform Init'
@@ -86,7 +86,7 @@ jobs:
       with:
         tf_actions_version: 1.2.5
         tf_actions_subcommand: 'init'
-        tf_actions_working_dir: 'services/infrastructure'
+        tf_actions_working_dir: 'infrastructure/src'
         tf_actions_comment: true
         args: '-backend=true -backend-config="access_key=${{ secrets.BACKEND_STORAGE_ACCOUNT_KEY }}" -backend-config="storage_account_name=${{ env.BACKEND_STORAGE_ACCOUNT_NAME }}" -backend-config="container_name=${{ env.BACKEND_CONTAINER_NAME }}" -backend-config="key=${{ env.DEPLOY_ENV }}.${{ env.BACKEND_STATE_FILE_NAME }}" -backend-config="resource_group_name=${{ env.BACKEND_RESOURCE_GROUP_NAME}}" -backend-config="subscription_id=${{ secrets.BACKEND_SUBSCRIPTION_ID}} " -backend-config="tenant_id=${{ secrets.AZURE_TENANT_ID}}"' 
       
@@ -95,13 +95,13 @@ jobs:
       with:
         tf_actions_version: 1.2.5
         tf_actions_subcommand: 'validate'
-        tf_actions_working_dir: 'services/infrastructure'
+        tf_actions_working_dir: 'infrastructure/src'
       
     - name: 'Run Security Scan'
       id: checkov
       uses: bridgecrewio/checkov-action@master
       with:
-          directory: 'services/infrastructure'
+          directory: 'infrastructure/src'
           framework: terraform 
       
     # Generates an execution plan for Terraform
@@ -110,7 +110,7 @@ jobs:
       with:
         tf_actions_version: 1.2.5
         tf_actions_subcommand: 'plan'
-        tf_actions_working_dir: 'services/infrastructure'
+        tf_actions_working_dir: 'infrastructure/src'
         args: '-var-file="./env-vars/${{ env.VAR_FILE }}" -input=false -refresh=false -out="${{ env.PLAN_FILE }}"'
       
     # - name: Approve Deploy
@@ -129,7 +129,7 @@ jobs:
       with:
         tf_actions_version: 1.2.5
         tf_actions_subcommand: 'apply'
-        tf_actions_working_dir: 'services/infrastructure'
+        tf_actions_working_dir: 'infrastructure/src'
         args: '-auto-approve -input=false "${{ env.PLAN_FILE }}"'
       
     - name: Azure Logout
