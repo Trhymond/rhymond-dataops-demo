@@ -10,9 +10,9 @@ name: 'Deploy DataOps Infrastructure'
 on:
   push:
     branches: [ main, dev ]
-    # paths:
-    #   - '**/deploy-infra.yml'
-    #   - '**/infrastructure/src/**/*.tf'    
+    paths:
+      - '**/deploy-infra.yml'
+      - '**/infrastructure/src/**/*.tf'    
 
 permissions:
   contents: read
@@ -26,7 +26,7 @@ env:
   BACKEND_STORAGE_ACCOUNT_NAME: 'iacterraformusesto01'
   BACKEND_CONTAINER_NAME: 'tfstate'
   BACKEND_STATE_FILE_NAME: 'dataops-demo.tfstate'
-  VAR_FILE: 'dev.tfvars'
+  VAR_FILE: 'dev-primary.tfvars'
   PLAN_FILE: 'tf-dataops-demo.tfplan'
   DEPLOY_ENV: 'dev'
   SSH_AUTH_SOCK: /tmp/ssh_agent.sock
