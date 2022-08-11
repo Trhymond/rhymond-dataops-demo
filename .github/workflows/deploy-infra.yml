@@ -5,14 +5,14 @@
 #
 # Documentation for `hashicorp/setup-terraform` is located here: https://github.com/hashicorp/setup-terraform
 
-name: 'Deploy Converter Infrastructure'
+name: 'Deploy DataOps Infrastructure'
 
 on:
   push:
     branches: [ master, dev ]
     paths:
       - '.github/workflows/deploy-infra.yml'
-      - 'src/**/*.tf'    
+      - 'infrastructure/src/**/*.tf'    
 
 permissions:
   contents: read
