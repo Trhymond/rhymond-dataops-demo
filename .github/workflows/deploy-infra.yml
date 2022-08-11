@@ -11,8 +11,8 @@ on:
   push:
     branches: [ master, dev ]
     paths:
-      - '.github/workflows/deploy-infra.yml'
-      - 'infrastructure/src/**/*.tf'    
+      - '**/deploy-infra.yml'
+      - '**/infrastructure/src/**/*.tf'    
 
 permissions:
   contents: read
