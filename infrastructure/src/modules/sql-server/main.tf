@@ -253,13 +253,30 @@ resource "azurerm_monitor_diagnostic_setting" "sql_diag_setting" {
   ]
 }
 
-resource "azurerm_mssql_database_extended_auditing_policy" "sql_audit_policy" {
+resource "azurerm_mssql_server_extended_auditing_policy" "sql_audit_policy" {
+  server_id                               = azurerm_mssql_server.sql_server
+  storage_endpoint                        = data.azurerm_storage_account.storage.primary_blob_endpoint
+  storage_account_access_key              = data.azurerm_storage_account.storage.primary_access_key
+  storage_account_access_key_is_secondary = false
+  retention_in_days                       = 14
+  log_monitoring_enabled                  = true
+  enabled                                 = true
+
+  depends_on = [
+    azurerm_mssql_server.sql_server,
+    data.azurerm_storage_account.storage
+  ]
+}
+
+resource "azurerm_mssql_database_extended_auditing_policy" "db_audit_policy" {
   for_each                                = toset([for v in azurerm_mssql_database.sql_database : v.id])
   database_id                             = each.value
   storage_endpoint                        = data.azurerm_storage_account.storage.primary_blob_endpoint
   storage_account_access_key              = data.azurerm_storage_account.storage.primary_access_key
   storage_account_access_key_is_secondary = false
   retention_in_days                       = 14
+  log_monitoring_enabled                  = true
+  enabled                                 = true
 
   depends_on = [
     azurerm_mssql_database.sql_database,
