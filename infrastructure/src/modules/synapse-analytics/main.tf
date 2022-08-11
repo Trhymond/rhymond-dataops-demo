@@ -23,6 +23,16 @@ resource "random_password" "password" {
   min_numeric      = 1
 }
 
+resource "azurerm_key_vault_key" "customer_key" {
+  #checkov:skip=CKV_AZURE_112: "Ensure that key vault key is backed by HSM"
+  name            = "${local.synapse_workspace_name}-key"
+  key_vault_id    = var.keyvault_id
+  key_type        = "RSA"
+  key_size        = 2048
+  key_opts        = ["decrypt", "encrypt", "sign", "unwrapKey", "verify", "wrapKey"]
+  expiration_date = local.secret_expiration_date
+}
+
 resource "azurerm_synapse_workspace" "synapse_workspace" {
   name                = local.synapse_workspace_name
   resource_group_name = data.azurerm_resource_group.rg.name
@@ -35,6 +45,11 @@ resource "azurerm_synapse_workspace" "synapse_workspace" {
   sql_administrator_login              = var.sqlpool_admin_user_name
   sql_administrator_login_password     = random_password.password[0].result
 
+  customer_managed_key {
+    key_versionless_id = azurerm_key_vault_key.customer_key.versionless_id
+    key_name           = "enckey"
+  }
+
   identity {
     type = "SystemAssigned"
   }
@@ -43,14 +58,46 @@ resource "azurerm_synapse_workspace" "synapse_workspace" {
   public_network_access_enabled        = false
   managed_virtual_network_enabled      = true
   sql_identity_control_enabled         = true
-  managed_resource_group_name          = "${synapse_workspace_name}-managed-rg"
+  managed_resource_group_name          = "${local.synapse_workspace_name}-managed-rg"
 
-  # sql_aad_admin {
-  #   login     = ""
-  #   object_id = ""
-  #   tenant_id = ""
-  # }
+  sql_aad_admin {
+    login     = "synapse-sql-admin"
+    object_id = var.synapse_admin_object_id
+    tenant_id = data.azurerm_client_config.current.tenant_id
+  }
+
+  depends_on = [
+    azurerm_key_vault_key.customer_key,
+    random_password.password
+  ]
 }
+
+resource "azurerm_key_vault_access_policy" "workspace_policy" {
+  key_vault_id = var.keyvault_id
+  tenant_id    = azurerm_synapse_workspace.synapse_workspace.identity[0].tenant_id
+  object_id    = azurerm_synapse_workspace.synapse_workspace.identity[0].principal_id
+
+  key_permissions = [
+    "Get", "WrapKey", "UnwrapKey"
+  ]
+
+  depends_on = [
+    azurerm_synapse_workspace.synapse_workspace
+  ]
+}
+
+resource "azurerm_synapse_workspace_key" "workspace_key" {
+  customer_managed_key_versionless_id = azurerm_key_vault_key.customer_key.versionless_id
+  synapse_workspace_id                = azurerm_synapse_workspace.synapse_workspace.id
+  active                              = true
+  customer_managed_key_name           = "enckey"
+
+  depends_on = [
+    azurerm_key_vault_key.customer_key,
+    azurerm_synapse_workspace.synapse_workspace
+  ]
+}
+
 
 resource "azurerm_synapse_sql_pool" "synapse_pool" {
   name                 = local.synapse_pool_name
@@ -77,6 +124,17 @@ resource "azurerm_key_vault_secret" "admin_pswd_secret" {
 
   depends_on = [
     random_password.password
+  ]
+}
+
+resource "azurerm_synapse_workspace_aad_admin" "example" {
+  synapse_workspace_id = azurerm_synapse_workspace.synapse_workspace.id
+  login                = "syanpse-aad-admin"
+  object_id            = var.synapse_admin_object_id
+  tenant_id            = data.azurerm_client_config.current.tenant_id
+
+  depends_on = [
+    azurerm_synapse_workspace.synapse_workspace
   ]
 }
 

@@ -229,7 +229,10 @@ variable "sqlpool_sku_name" {
   type        = string
   description = "The sql pool sku name"
 }
-
+variable "synapse_admin_object_id" {
+  type        = string
+  description = "The workspace admin object id"
+}
 # variable "synapse_firewall_rules" {
 #   type = map(object({
 #     name     = string

@@ -108,5 +108,27 @@ variable "secret_expiration_days" {
   description = "The keyvault secret expiration days from the date of add"
   default     = 90
 }
+variable "sql_pool_name" {
+  type        = string
+  description = "The sql elastic pool name"
+}
 
+variable "sql_pool_size_gb" {
+  type        = number
+  description = "The sql elastic pool size in GB"
+}
 
+variable "sql_pool_sku" {
+  type = object({
+    name     = string
+    tier     = string
+    family   = string
+    capacity = number
+  })
+  description = "The sql elastic pool sku"
+}
+
+variable "storage_account_name" {
+  type        = string
+  description = "The storage account from audit logs"
+}

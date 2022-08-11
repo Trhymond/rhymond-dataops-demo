@@ -80,3 +80,9 @@ variable "keyvault_id" {
   description = "The KeyVaullt id"
   type        = string
 }
+
+variable "secret_expiration_days" {
+  type        = number
+  description = "The keyvault secret expiration days from the date of add"
+  default     = 90
+}

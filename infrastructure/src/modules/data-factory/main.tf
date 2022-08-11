@@ -1,3 +1,4 @@
+
 data "azurerm_client_config" "current" {}
 
 data "azurerm_resource_group" "rg" {
@@ -90,9 +91,10 @@ resource "azurerm_monitor_action_group" "action_group" {
 
   dynamic "email_receiver" {
     for_each = var.alert_email_receivers
+    iterator = receiver
     content {
-      name          = each.email_receiver.name
-      email_address = each.email_receiver.email
+      name          = receiver.value.name
+      email_address = receiver.value.email_address
     }
   }
 }

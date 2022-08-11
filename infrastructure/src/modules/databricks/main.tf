@@ -19,7 +19,7 @@ resource "azurerm_databricks_workspace" "databricks_workspace" {
   managed_resource_group_name           = "${local.databricks_workspace_name}-rg"
   sku                                   = var.sku
   public_network_access_enabled         = false
-  network_security_group_rules_required = "AllRules"
+  network_security_group_rules_required = "NoAzureDatabricksRules"
 
   custom_parameters {
     no_public_ip                                         = var.no_public_ip

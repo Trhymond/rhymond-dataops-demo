@@ -20,7 +20,6 @@ resource "azurerm_virtual_network" "vnet" {
   address_space = var.vnet_address_space
 
   dynamic "ddos_protection_plan" {
-    # for_each = var.ddos_protection_plan_id[*]
     for_each = var.ddos_protection_plan_id == null ? [] : [1]
     content {
       id     = var.ddos_protection_plan_id
@@ -70,11 +69,12 @@ resource "azurerm_subnet" "subnets" {
 
   dynamic "delegation" {
     for_each = each.value.service_delegation != null ? each.value.service_delegation : []
+    iterator = dlg
     content {
       name = "${delegation.value.name}-delegation"
       service_delegation {
-        name    = delegation.value.name
-        actions = delegation.value.actions
+        name    = dlg.value.name
+        actions = dlg.value.actions
       }
     }
   }

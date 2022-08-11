@@ -171,6 +171,7 @@ module "data_lake" {
   storage_account_tier             = var.datalake_storage_account_tier
   storage_account_replication_type = var.datalake_storage_account_replication_type
   keyvault_id                      = module.keyvault.id
+  secret_expiration_days           = var.secret_expiration_days
 
   datalake_containers = {
     "bronze" = { scope = "access", type = "user", id = "99331b05-b78e-4c92-9e8a-5c7d42a36c1a", perm = "rwx" },
@@ -211,6 +212,7 @@ module "synapse_analytics" {
   keyvault_id             = module.keyvault.id
   secret_expiration_days  = var.secret_expiration_days
   sqlpool_admin_user_name = var.sqlpool_admin_user_name
+  synapse_admin_object_id = var.synapse_admin_object_id
 
   depends_on = [
     module.data_zone_rg,

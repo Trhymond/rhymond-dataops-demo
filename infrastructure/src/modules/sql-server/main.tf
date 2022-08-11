@@ -3,6 +3,10 @@ data "azurerm_client_config" "current" {}
 data "azurerm_resource_group" "rg" {
   name = var.resource_group_name
 }
+data "azurerm_storage_account" "storage" {
+  name                = var.storage_account_name
+  resource_group_name = var.resource_group_name
+}
 
 locals {
   sql_server_name     = lower("${var.project_name}-${var.environment_name}-${var.location_short_name}-sql")
@@ -53,6 +57,24 @@ resource "azurerm_mssql_server" "sql_server" {
   }
 }
 
+resource "azurerm_mssql_elasticpool" "sql_pool" {
+  count = var.sql_pool_name != null ? 1 : 0
+
+  name                = var.sql_pool_name
+  resource_group_name = data.azurerm_resource_group.rg.name
+  location            = data.azurerm_resource_group.rg.location
+  server_name         = azurerm_sql_server.sql_server.name
+  license_type        = "LicenseIncluded"
+  max_size_gb         = var.sql_pool_size_gb
+  sku                 = var.sql_pool_sku
+
+  per_database_settings {
+    min_capacity = var.sql_pool_db_min_capacity
+    max_capacity = var.sql_pool_db_max_capacity
+  }
+}
+
+
 resource "azurerm_mssql_database" "sql_database" {
   for_each = var.sql_databases
   name     = each.value.sql_database_name
@@ -70,6 +92,7 @@ resource "azurerm_mssql_database" "sql_database" {
 
   transparent_data_encryption_enabled = true
   zone_redundant                      = each.value.zone_redundant
+  elastic_pool_id                     = var.sql_pool_name != null ? azurerm_mssql_elasticpool.sql_pool.id : null
 
   # extended_auditing_policy {
   #   storage_endpoint                        = azurerm_storage_account.example.primary_blob_endpoint
@@ -142,13 +165,6 @@ resource "azurerm_mssql_server_transparent_data_encryption" "tde" {
   server_id = azurerm_mssql_server.sql_server.id
 }
 
-# resource "azurerm_advanced_threat_protection" "atp" {
-#   for_each           = toset([for v in azurerm_mssql_database.sql_database : v.id])
-#   target_resource_id = each.value
-#   enabled            = true
-# }
-
-
 resource "azurerm_key_vault_secret" "admin_user_secret" {
   name            = "sql-admin-user-name"
   value           = var.sql_admin_username
@@ -213,19 +229,6 @@ resource "azurerm_key_vault_secret" "db_ro_password_secret" {
   ]
 }
 
-# resource "null_resource" "remove_diag_settings" {
-#   for_each      = var.sql_databases
-#   provisioner "local-exec" {
-#     command     = "az monitor diagnostic-settings delete --name sql_diag_setting --resource /subscriptions/${data.azurerm_client_config.current.subscription_id}/resourceGroups/${var.resource_group_name}/providers/Microsoft.Sql/servers/${azurerm_mssql_server.sql_server.name}/databases/${azurerm_mssql_database.sql_database[each.key].id}"
-#     interpreter = ["pwsh", "-Command"]
-#   }
-
-#   depends_on = [
-#     azurerm_mssql_server.sql_server,
-#     azurerm_mssql_database.sql_database
-#   ]
-# }
-
 # add diagnostic settings
 resource "azurerm_monitor_diagnostic_setting" "sql_diag_setting" {
   for_each                       = var.sql_databases
@@ -235,11 +238,11 @@ resource "azurerm_monitor_diagnostic_setting" "sql_diag_setting" {
   eventhub_authorization_rule_id = var.eventhub_authorization_rule_id
 
   dynamic "log" {
-    iterator = log_category
     //for_each = data.azurerm_monitor_diagnostic_categories.sql_database_diag_categories.logs
     for_each = local.diag_log_categories
+    iterator = category
     content {
-      category = log_category.value
+      category = category.value
       enabled  = true
     }
   }
@@ -250,71 +253,87 @@ resource "azurerm_monitor_diagnostic_setting" "sql_diag_setting" {
   ]
 }
 
-# resource "azurerm_mssql_database_extended_auditing_policy" "sql_audit_policy" {
-#   database_id                             = azurerm_mssql_database.example.id
-#   storage_endpoint                        = azurerm_storage_account.example.primary_blob_endpoint
-#   storage_account_access_key              = azurerm_storage_account.example.primary_access_key
-#   storage_account_access_key_is_secondary = false
-#   retention_in_days                       = 6
-# }
-
-
-# create sql logins
-resource "null_resource" "sql_logins" {
-  for_each = var.sql_databases
-
-  provisioner "local-exec" {
-    command = <<EOT
-      /tools/azurecli/azurecli-2.29.2/bin/python3 -m pip install mssql-cli
-      sed -i "s|python -m mssqlcli.main|python3 -m mssqlcli.main|g" /tools/azurecli/azurecli-2.29.2/bin/mssql-cli
-      mssql-cli --version
-
-      sed  -e "s/__User1Name__/$USER_NAME_1/g; s/__User1Pwd__/$USER_PSWD_1/g; s/__User2Name__/$USER_NAME_2/g; s/__User2Pwd__/$USER_PSWD_2/g" "$PWD/../../modules/sql-server/scripts/create-user-logins.sql" > "$PWD/../../modules/sql-server/scripts/create-user-logins.tmp.sql"      
-
-      mssql-cli -S $SQL_SERVER -d master -U $ADMIN_USER_NAME -P $ADMIN_PSWD  -i "$PWD/../../modules/sql-server/scripts/create-user-logins.tmp.sql" -N -C -l 60
-
-    EOT
-    environment = {
-      SQL_SERVER      = "tcp:${local.sql_server_name}.database.windows.net,1433"
-      ADMIN_USER_NAME = "${var.sql_admin_username}"
-      ADMIN_PSWD      = "${random_password.password[0].result}"
-      USER_NAME_1     = "${each.value.sql_database_name}-rw-user"
-      USER_NAME_2     = "${each.value.sql_database_name}-rw-user"
-      USER_PSWD_1     = "${random_password.password[1].result}"
-      USER_PSWD_2     = "${random_password.password[2].result}"
-    }
-  }
+resource "azurerm_mssql_database_extended_auditing_policy" "sql_audit_policy" {
+  for_each                                = toset([for v in azurerm_mssql_database.sql_database : v.id])
+  database_id                             = each.value
+  storage_endpoint                        = data.azurerm_storage_account.storage.primary_blob_endpoint
+  storage_account_access_key              = data.azurerm_storage_account.storage.primary_access_key
+  storage_account_access_key_is_secondary = false
+  retention_in_days                       = 14
 
   depends_on = [
-    azurerm_mssql_server.sql_server,
+    azurerm_mssql_database.sql_database,
+    data.azurerm_storage_account.storage
+  ]
+}
+
+resource "azurerm_advanced_threat_protection" "atp" {
+  for_each           = toset([for v in azurerm_mssql_database.sql_database : v.id])
+  target_resource_id = each.value
+  enabled            = true
+
+  depends_on = [
     azurerm_mssql_database.sql_database
   ]
 }
 
-# run scripts in sql database 
-resource "null_resource" "db_scripts" {
-  for_each = var.sql_databases
 
-  provisioner "local-exec" {
-    command = <<EOT
-      sed  -e "s/__User1Name__/$USER_NAME_1/g; s/__User2Name__/$USER_NAME_2/g; " "$PWD/../../modules/sql-server/scripts/$database/create-users.sql" > "$PWD/../../modules/sql-server/scripts/$database/create-users.tmp.sql"
-      mssql-cli -S $SQL_SERVER -d $SQL_DATABASE -U $ADMIN_USER_NAME -P $ADMIN_PSWD  -i "$PWD/../../modules/sql-server/scripts/create-users.tmp.sql" -N -C -l 60
-    EOT  
-    environment = {
-      SQL_SERVER      = "tcp:${local.sql_server_name}.database.windows.net,1433"
-      SQL_DATABASE    = "${each.value.sql_database_name}"
-      ADMIN_USER_NAME = "${var.sql_admin_username}"
-      ADMIN_PSWD      = "${random_password.password[0].result}"
-      USER_NAME_1     = "${each.value.sql_database_name}-rw-user"
-      USER_NAME_2     = "${each.value.sql_database_name}-ro-user"
-    }
-  }
+# create sql logins
+# resource "null_resource" "sql_logins" {
+#   for_each = var.sql_databases
 
-  depends_on = [
-    azurerm_mssql_server.sql_server,
-    azurerm_mssql_database.sql_database,
-    null_resource.sql_logins
-  ]
-}
+#   provisioner "local-exec" {
+#     command = <<EOT
+#       /tools/azurecli/azurecli-2.29.2/bin/python3 -m pip install mssql-cli
+#       sed -i "s|python -m mssqlcli.main|python3 -m mssqlcli.main|g" /tools/azurecli/azurecli-2.29.2/bin/mssql-cli
+#       mssql-cli --version
+
+#       sed  -e "s/__User1Name__/$USER_NAME_1/g; s/__User1Pwd__/$USER_PSWD_1/g; s/__User2Name__/$USER_NAME_2/g; s/__User2Pwd__/$USER_PSWD_2/g" "$PWD/../../modules/sql-server/scripts/create-user-logins.sql" > "$PWD/../../modules/sql-server/scripts/create-user-logins.tmp.sql"      
+
+#       mssql-cli -S $SQL_SERVER -d master -U $ADMIN_USER_NAME -P $ADMIN_PSWD  -i "$PWD/../../modules/sql-server/scripts/create-user-logins.tmp.sql" -N -C -l 60
+
+#     EOT
+#     environment = {
+#       SQL_SERVER      = "tcp:${local.sql_server_name}.database.windows.net,1433"
+#       ADMIN_USER_NAME = "${var.sql_admin_username}"
+#       ADMIN_PSWD      = "${random_password.password[0].result}"
+#       USER_NAME_1     = "${each.value.sql_database_name}-rw-user"
+#       USER_NAME_2     = "${each.value.sql_database_name}-rw-user"
+#       USER_PSWD_1     = "${random_password.password[1].result}"
+#       USER_PSWD_2     = "${random_password.password[2].result}"
+#     }
+#   }
+
+#   depends_on = [
+#     azurerm_mssql_server.sql_server,
+#     azurerm_mssql_database.sql_database
+#   ]
+# }
+
+# # run scripts in sql database 
+# resource "null_resource" "db_scripts" {
+#   for_each = var.sql_databases
+
+#   provisioner "local-exec" {
+#     command = <<EOT
+#       sed  -e "s/__User1Name__/$USER_NAME_1/g; s/__User2Name__/$USER_NAME_2/g; " "$PWD/../../modules/sql-server/scripts/$database/create-users.sql" > "$PWD/../../modules/sql-server/scripts/$database/create-users.tmp.sql"
+#       mssql-cli -S $SQL_SERVER -d $SQL_DATABASE -U $ADMIN_USER_NAME -P $ADMIN_PSWD  -i "$PWD/../../modules/sql-server/scripts/create-users.tmp.sql" -N -C -l 60
+#     EOT  
+#     environment = {
+#       SQL_SERVER      = "tcp:${local.sql_server_name}.database.windows.net,1433"
+#       SQL_DATABASE    = "${each.value.sql_database_name}"
+#       ADMIN_USER_NAME = "${var.sql_admin_username}"
+#       ADMIN_PSWD      = "${random_password.password[0].result}"
+#       USER_NAME_1     = "${each.value.sql_database_name}-rw-user"
+#       USER_NAME_2     = "${each.value.sql_database_name}-ro-user"
+#     }
+#   }
+
+#   depends_on = [
+#     azurerm_mssql_server.sql_server,
+#     azurerm_mssql_database.sql_database,
+#     null_resource.sql_logins
+#   ]
+# }
 
 

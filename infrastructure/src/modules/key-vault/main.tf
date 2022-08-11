@@ -48,10 +48,11 @@ resource "azurerm_key_vault" "kv" {
 
   dynamic "access_policy" {
     for_each = var.access_policies
+    iterator = policy
     content {
       tenant_id      = data.azurerm_client_config.current.tenant_id
-      object_id      = access_policy.value["object_id"]
-      application_id = access_policy.value["application_id"]
+      object_id      = policy.value["object_id"]
+      application_id = policy.value["application_id"]
 
       key_permissions         = ["Get", "List", "Create", "Update"]
       secret_permissions      = ["Get", "List", "Set"]

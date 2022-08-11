@@ -7,21 +7,34 @@ data "azurerm_resource_group" "rg" {
 locals {
   storage_account_name = replace(lower("${var.project_name}-${var.environment_name}-${var.location_short_name}-sto"), "-", "")
 
-  # storage_account_network_acls = var.storage_account_network_acls == null || length(var.storage_account_network_acls) == 0 ? merge(var.storage_account_network_acls, {
-  #   bypass         = ["AzureServices"],
-  #   default_action = "Allow",
-  # }) : var.storage_account_network_acls
+  is_any_acl_present = try(
+    contains(var.storage_account_network_acls.ip_rules, "any"),
+    false
+  )
+
+  storage_account_network_acls = [
+    local.is_any_acl_present || var.storage_account_network_acls == null ? {
+      bypass                     = ["AzureServices"],
+      default_action             = "Allow",
+      ip_rules                   = [],
+      virtual_network_subnet_ids = []
+    } : var.storage_account_network_acls
+  ]
 
 
-  # storage_account_role_assignments_hash_map = {
-  #   for assignment in var.storage_account_role_assignments :
-  #   md5("${assignment.principal_id}${assignment.role_definition_name}") => assignment
-  # }
+  storage_account_role_assignments_hash_map = {
+    for assignment in var.storage_account_role_assignments :
+    md5("${assignment.principal_id}${assignment.role_definition_name}") => assignment
+  }
 
   datalake_container_paths = {
     for path_object in var.datalake_container_paths :
     md5("${path_object.container_name}${path_object.path_name}") => path_object
   }
+
+  current_time           = timestamp()
+  expiration_hours       = var.secret_expiration_days * 24
+  secret_expiration_date = formatdate("YYYY-MM-DD", timeadd(local.current_time, "${local.expiration_hours}h"))
 }
 
 resource "azurerm_storage_account" "storage" {
@@ -42,13 +55,8 @@ resource "azurerm_storage_account" "storage" {
   min_tls_version           = "TLS1_2"
   is_hns_enabled            = true
 
-  network_rules {
-    bypass         = ["AzureServices"]
-    default_action = "Allow"
-  }
-
   dynamic "network_rules" {
-    for_each = var.storage_account_network_acls
+    for_each = local.storage_account_network_acls
     iterator = acl
     content {
       bypass                     = acl.value.bypass
@@ -56,10 +64,6 @@ resource "azurerm_storage_account" "storage" {
       ip_rules                   = acl.value.ip_rules
       virtual_network_subnet_ids = acl.value.virtual_network_subnet_ids
     }
-  }
-
-  network_rules {
-    default_action = "Deny"
   }
 
   identity {
@@ -98,7 +102,7 @@ resource "azurerm_storage_data_lake_gen2_path" "data_lake_path" {
 }
 
 resource "azurerm_role_assignment" "role_asgmt" {
-  for_each             = var.storage_account_role_assignments
+  for_each             = local.storage_account_role_assignments_hash_map
   scope                = azurerm_storage_account.storage.id
   role_definition_name = each.value.role_definition_name
   principal_id         = each.value.principal_id

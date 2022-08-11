@@ -170,7 +170,7 @@ storage_account_replication_type = "LRS"
 
 # Data Factory
 data_factory_public_network_enabled = true
-data_factory_action_group_shortname = ""
+data_factory_action_group_shortname = "df_alert"
 data_factory_alert_email_receivers = [{
   name          = "Tomy Rhymond"
   email_address = "tomy.rhymond@slalom.com"
@@ -181,7 +181,6 @@ databricks_sku                 = "premium"
 databricks_no_public_ip        = true
 databricks_public_subnet_name  = "public-databricks-snet"
 databricks_private_subnet_name = "private-databricks-snet"
-service_principal_client_id    = "df555efd-6de0-4370-a12a-d3401abfcbce"
 
 # ADLS
 datalake_storage_account_tier             = "Standard"
@@ -200,12 +199,14 @@ datalake_container_paths = [
 datalake_storage_account_network_acls = {
   bypass                     = ["AzureServices"]
   default_action             = "Deny"
-  ip_rules                   = ["any"]
+  ip_rules                   = []
   virtual_network_subnet_ids = []
 }
 datalake_storage_account_role_assignments = []
 
 #Synapse
-sqlpool_admin_user_name = "synapse_sql_admin"
+sqlpool_admin_user_name = "synapse-sql-admin"
 sqlpool_sku_name        = "DW100c"
+synapse_admin_object_id = "6805bfc1-d8a0-45b1-9730-de272b0b4c8f"
+
 # synapse_firewall_rules  = {}
