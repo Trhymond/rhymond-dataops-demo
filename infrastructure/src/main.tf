@@ -210,7 +210,6 @@ module "synapse_analytics" {
   datalake_filesystem_id  = module.data_lake.filesystems["gold"].id
   keyvault_id             = module.keyvault.id
   secret_expiration_days  = var.secret_expiration_days
-  firewall_rules          = var.synapse_firewall_rules
   sqlpool_admin_user_name = var.sqlpool_admin_user_name
 
   depends_on = [
