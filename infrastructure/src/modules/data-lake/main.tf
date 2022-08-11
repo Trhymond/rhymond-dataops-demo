@@ -15,7 +15,7 @@ locals {
   storage_account_network_acls = [
     local.is_any_acl_present || var.storage_account_network_acls == null ? {
       bypass                     = ["AzureServices"],
-      default_action             = "deny",
+      default_action             = "Deny",
       ip_rules                   = [],
       virtual_network_subnet_ids = []
     } : var.storage_account_network_acls
@@ -39,6 +39,8 @@ locals {
 
 resource "azurerm_storage_account" "storage" {
   #checkov:skip=CKV_AZURE_33: "Ensure Storage logging is enabled for Queue service for read, write and delete requests"
+  #checkov:skip=CKV_AZURE_35: "Ensure default network access rule for Storage Accounts is set to deny"
+  #checkov:skiip=CKV_AZURE_36: "Ensure 'Trusted Microsoft Services' is enabled for Storage Account access"
 
   name                = local.storage_account_name
   resource_group_name = data.azurerm_resource_group.rg.name

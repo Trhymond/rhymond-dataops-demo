@@ -30,7 +30,8 @@ resource "azurerm_storage_account" "storage" {
   is_hns_enabled            = false
 
   network_rules {
-    default_action = "deny"
+    bypass         = ["AzureServices"]
+    default_action = "Deny"
   }
 
   identity {
