@@ -50,7 +50,7 @@ resource "azurerm_storage_account" "storage" {
       bypass                     = acl.value.bypass
       default_action             = acl.value.default_action
       ip_rules                   = acl.value.ip_rules
-      virtual_network_subnet_ids = acl.value.virtual_network_subnet_ids == null ? null : acl.value.virtual_network_subnet_ids
+      virtual_network_subnet_ids = acl.value.virtual_network_subnet_ids
     }
   }
 

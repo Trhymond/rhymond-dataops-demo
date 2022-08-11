@@ -11,8 +11,8 @@ on:
   push:
     branches: [ master, dev ]
     paths:
-      - '.github/workflows/deploy-converter-infra.yml'
-      - 'services/infrastructure/**/*.tf'    
+      - '.github/workflows/deploy-infra.yml'
+      - 'src/**/*.tf'    
 
 permissions:
   contents: read
@@ -25,12 +25,10 @@ env:
   BACKEND_RESOURCE_GROUP_NAME: 'iac-mgmt-rg'
   BACKEND_STORAGE_ACCOUNT_NAME: 'iacterraformusesto01'
   BACKEND_CONTAINER_NAME: 'tfstate'
-  BACKEND_STATE_FILE_NAME: 'blue_mountain.tfstate'
+  BACKEND_STATE_FILE_NAME: 'dataops-demo.tfstate'
   VAR_FILE: 'dev.tfvars'
-  PLAN_FILE: 'tf_converter_svc.tfplan'
+  PLAN_FILE: 'tf-dataops-demo.tfplan'
   DEPLOY_ENV: 'dev'
-  # AZURE_FUNCTIONAPP_NAME: 'bluemountain-dev-us-e2-azfunc'
-  # AZURE_FUNCTIONAPP_PACKAGE_PATH: './services/TerraformConverterService'
   SSH_AUTH_SOCK: /tmp/ssh_agent.sock
  
 jobs:
