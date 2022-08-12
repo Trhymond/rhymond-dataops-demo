@@ -25,13 +25,23 @@ variable "tags" {
 }
 
 variable "storage_account_tier" {
-  description = "The tier for the storage account"
+  description = "The tier for the storage account; Must be Standard or Premium"
   type        = string
+
+  validation {
+    condition     = var.storage_account_tier == "Standard" || var.storage_account_tier == "Premium"
+    error_message = "The storage account tier must be set to Standard or Premium."
+  }
 }
 
 variable "storage_account_replication_type" {
-  description = "The replication type for the storage account"
+  description = "Defines the type of replication to use for this storage account. Valid Options are LRS, GRS, RAGRS, ZRS, GZRS and RAGZRS"
   type        = string
+
+  validation {
+    condition     = contains(["LRS", "GRS", "RAGRS", "ZRS", "GZRS", "RAGZRS"], var.storage_account_replication_type)
+    error_message = "The storage account tier must be set to Standard or Premium."
+  }
 }
 
 variable "datalake_containers" {

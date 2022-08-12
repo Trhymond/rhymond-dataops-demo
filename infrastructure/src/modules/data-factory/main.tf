@@ -10,7 +10,7 @@ locals {
 
   current_time           = timestamp()
   expiration_hours       = var.secret_expiration_days * 24
-  secret_expiration_date = formatdate("YYYY-MM-DD", timeadd(local.current_time, "${local.expiration_hours}h"))
+  secret_expiration_date = formatdate("YYYY-MM-DD'T'hh:mm:ssZ", timeadd(local.current_time, "${local.expiration_hours}h"))
 }
 
 resource "azurerm_key_vault_key" "adf_cmk_key" {

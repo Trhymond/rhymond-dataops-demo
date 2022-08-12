@@ -32,9 +32,9 @@ locals {
     md5("${path_object.container_name}${path_object.path_name}") => path_object
   }
 
-  current_time           = timestamp()
-  expiration_hours       = var.secret_expiration_days * 24
-  secret_expiration_date = formatdate("YYYY-MM-DD", timeadd(local.current_time, "${local.expiration_hours}h"))
+  # current_time           = timestamp()
+  # expiration_hours       = var.secret_expiration_days * 24
+  secret_expiration_date = formatdate("YYYY-MM-DD'T'hh:mm:ssZ", timeadd(timestamp(), "${var.secret_expiration_days * 24}h"))
 }
 
 resource "azurerm_storage_account" "storage" {
@@ -92,7 +92,8 @@ resource "azurerm_storage_data_lake_gen2_filesystem" "data_lake_files" {
 }
 
 resource "azurerm_storage_data_lake_gen2_path" "data_lake_path" {
-  for_each           = local.datalake_container_paths
+  for_each = local.datalake_container_paths
+
   storage_account_id = azurerm_storage_account.storage.id
   path               = each.value.path_name
   filesystem_name    = azurerm_storage_data_lake_gen2_filesystem.data_lake_files[each.value.container_name].name

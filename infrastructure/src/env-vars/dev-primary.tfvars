@@ -154,7 +154,7 @@ log_analytics_retention_in_days = "30"
 
 
 # Key Vault
-keyvault_instance_id = 5
+keyvault_instance_id = 6
 keyvault_sku_name    = "standard"
 keyvault_ip_rules    = []
 keyvault_access_policies = [
@@ -186,9 +186,9 @@ databricks_private_subnet_name = "private-databricks-snet"
 datalake_storage_account_tier             = "Standard"
 datalake_storage_account_replication_type = "LRS"
 datalake_containers = {
-  "bronze" = { scope = "access", type = "user", id = "99331b05-b78e-4c92-9e8a-5c7d42a36c1a", perm = "rwx" },
-  "silver" = { scope = "access", type = "user", id = "99331b05-b78e-4c92-9e8a-5c7d42a36c1a", perm = "rwx" },
-  "gold"   = { scope = "access", type = "user", id = "99331b05-b78e-4c92-9e8a-5c7d42a36c1a", perm = "rwx" },
+  "bronze" = { scope = "access", type = "group", id = "df73b62f-fa9f-41a0-9648-cd382e9e36d3", perm = "rwx" },
+  "silver" = { scope = "access", type = "group", id = "cd4c7728-f638-430a-b52f-9c0246c70d33", perm = "rwx" },
+  "gold"   = { scope = "access", type = "group", id = "a0f58640-b6d4-4b37-8cfd-1ac5662f5322", perm = "rwx" },
 }
 datalake_container_paths = [
   { container_name = "bronze", path_name = "con01" },
