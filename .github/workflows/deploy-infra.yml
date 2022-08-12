@@ -12,7 +12,7 @@ on:
     branches: [ main, dev ]
     paths:
       - '**/deploy-infra.yml'
-      - '**/infrastructure/src/**/*.tf'    
+      - '**/infrastructure/src/**/*.tf*'       
 
 permissions:
   contents: read

@@ -160,7 +160,7 @@ keyvault_ip_rules    = []
 keyvault_access_policies = [
   { name = "azure_devops_nonprod", object_id = "b2dcc3b3-8444-460e-ab72-d6dfd4a3ef30", application_id = "b5dd3b76-fd5e-4511-b626-c1578fb10feb" }
 ]
-secret_expiration_days = 90
+secret_expiration_days = 120
 
 #Storage Account
 storage_account_tier             = "Standard"
