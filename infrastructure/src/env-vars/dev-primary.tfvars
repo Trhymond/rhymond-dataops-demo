@@ -158,8 +158,7 @@ keyvault_instance_id = 6
 keyvault_sku_name    = "standard"
 keyvault_ip_rules    = []
 keyvault_access_policies = [
-  { name = "Microsoft Azure CLI", object_id = "2d5bf8d7-3116-4d46-a951-65a94082e92b", application_id = "04b07795-8ddb-461a-bbee-02f9e1bf7b46" },
-  { name = "azure_devops_nonprod", object_id = "22a5ec62-ad8b-4f3a-b2fe-f566170f1a8d", application_id = "df555efd-6de0-4370-a12a-d3401abfcbce" }
+  { name = "azure_devops_nonprod", object_id = "b2dcc3b3-8444-460e-ab72-d6dfd4a3ef30", application_id = "b5dd3b76-fd5e-4511-b626-c1578fb10feb" }
 ]
 secret_expiration_days = 90
 
